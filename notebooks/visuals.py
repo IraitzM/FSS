@@ -1,7 +1,5 @@
-import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
-
 
 def plot_pos_neg_bars(data, categories, title='Positive and Negative Values', figsize=(12, 6)):
     """
@@ -109,5 +107,96 @@ def plot_offers_comparison(df, offer_column, score1_column, score2_column,
     # Set chart limits based on data range
     max_val = max(max(dataset1), max(dataset2))
     plt.ylim(0, max_val * 1.1)  # Add 10% padding
+    
+    return fig, ax
+
+def plot_unemployment_rates(data, figsize=(12, 6)):
+    """
+    Create a bar plot of unemployment rates over time.
+    
+    Parameters:
+    data (pd.DataFrame): DataFrame containing the unemployment data
+    figsize (tuple): Figure size (width, height)
+    """
+    # Create figure and axis
+    fig, ax = plt.subplots(figsize=figsize)
+    
+    # Create bars
+    bars = ax.bar(data['Urtea'], data['Langabezia Tasa'], 
+                color='#3498db', alpha=0.8)
+
+    # Customize the plot
+    ax.set_title('Langabezia', pad=20, fontsize=14)
+    ax.set_xlabel('Urtea')
+    ax.set_ylabel('Langabezi Tasa (%)')
+    
+    # Add value labels on top of bars
+    for bar in bars:
+        height = bar.get_height()
+        ax.text(bar.get_x() + bar.get_width()/2., height,
+                f'{height:.2f}%',
+                ha='center', va='bottom')
+    
+    # Add gridlines for better readability
+    ax.grid(True, axis='y', linestyle='--', alpha=0.3)
+    
+    # Adjust layout
+    plt.tight_layout()
+    
+    return fig, ax
+
+def plot_unemployment_comparison(data, columns_to_plot, column_labels=None, figsize=(12, 6)):
+    """
+    Create a grouped bar plot comparing different unemployment rates over time.
+    
+    Parameters:
+    data (pd.DataFrame): DataFrame containing the unemployment data
+    columns_to_plot (list): List of column names to plot
+    column_labels (list): Optional list of labels for the legend
+    figsize (tuple): Figure size (width, height)
+    """
+    # Set up the figure
+    fig, ax = plt.subplots(figsize=figsize)
+    
+    # Calculate bar positions
+    years = data['Urtea'].values
+    n_columns = len(columns_to_plot)
+    width = 0.8 / n_columns  # Adjust bar width based on number of columns
+    
+    # Create color palette
+    colors = ['#3498db', '#2ecc71', '#e74c3c', '#f1c40f']
+    
+    # Plot bars for each column
+    for i, column in enumerate(columns_to_plot):
+        # Calculate position for this set of bars
+        positions = np.arange(len(years)) + i * width - (n_columns-1) * width/2
+        
+        # Create bars
+        label = column_labels[i] if column_labels else column
+        bars = ax.bar(positions, data[column], width,
+                     label=label, color=colors[i % len(colors)], alpha=0.8)
+        
+        # Add value labels on top of bars
+        for bar in bars:
+            height = bar.get_height()
+            ax.text(bar.get_x() + bar.get_width()/2., height,
+                   f'{height:.1f}%',
+                   ha='center', va='bottom', fontsize=8)
+    
+    # Customize the plot
+    ax.set_title('Lagabezi tasa denboran zehar', pad=20, fontsize=14)
+    ax.set_xlabel('Urtea')
+    ax.set_ylabel('Langabezi Tasa (%)')
+    
+    # Set x-axis ticks at bar group centers
+    ax.set_xticks(np.arange(len(years)))
+    ax.set_xticklabels(years)
+    
+    # Add gridlines and legend
+    ax.grid(True, axis='y', linestyle='--', alpha=0.3)
+    ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+    
+    # Adjust layout to prevent label cutoff
+    plt.tight_layout()
     
     return fig, ax
