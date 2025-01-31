@@ -1,5 +1,9 @@
 import matplotlib.pyplot as plt
 import numpy as np
+from sklearn.preprocessing import PolynomialFeatures
+from sklearn.linear_model import LinearRegression
+from sklearn.pipeline import make_pipeline
+from sklearn.linear_model import LinearRegression
 
 def plot_pos_neg_bars(data, categories, title='Positive and Negative Values', figsize=(12, 6)):
     """
@@ -200,3 +204,158 @@ def plot_unemployment_comparison(data, columns_to_plot, column_labels=None, figs
     plt.tight_layout()
     
     return fig, ax
+
+def plot_unemployment_rates_pred(data, predict_years=3, figsize=(12, 6)):
+    """
+    Create a bar plot of unemployment rates over time with future predictions.
+    
+    Parameters:
+    data (pd.DataFrame): DataFrame containing the unemployment data
+    predict_years (int): Number of years to predict into the future
+    figsize (tuple): Figure size (width, height)
+    """
+    # Create figure and axis
+    fig, ax = plt.subplots(figsize=figsize)
+    
+    # Prepare data for prediction
+    X = data['Urtea'].values.reshape(-1, 1)
+    y = data['Langabezia Tasa'].values
+    
+    # Create and fit the model
+    model = LinearRegression()
+    model.fit(X, y)
+    
+    # Generate future years and predictions
+    last_year = data['Urtea'].max()
+    future_years = np.array(range(last_year + 1, last_year + predict_years + 1))
+    future_predictions = model.predict(future_years.reshape(-1, 1))
+    
+    # Create bars for actual data
+    bars = ax.bar(data['Urtea'], data['Langabezia Tasa'], 
+                 color='#3498db', alpha=0.8, label='Actual')
+    
+    # Add value labels on top of bars
+    for bar in bars:
+        height = bar.get_height()
+        ax.text(bar.get_x() + bar.get_width()/2., height,
+                f'{height:.2f}%',
+                ha='center', va='bottom')
+    
+    # Plot prediction line for both historical and future data
+    all_years = np.concatenate([X.flatten(), future_years])
+    all_predictions = model.predict(all_years.reshape(-1, 1))
+    
+    # Plot the trend line for historical data
+    ax.plot(X.flatten(), model.predict(X), 
+            color='#e74c3c', linestyle='--', alpha=0.5)
+    
+    # Plot the prediction line and confidence interval
+    ax.plot(future_years, future_predictions, 
+            color='#e74c3c', linestyle='--', 
+            label='Predicted', linewidth=2)
+    
+    # Add points for predictions
+    ax.scatter(future_years, future_predictions, 
+              color='#e74c3c', zorder=5)
+    
+    # Add labels for predicted values
+    for year, pred in zip(future_years, future_predictions):
+        ax.text(year, pred, f'{pred:.2f}%',
+                ha='center', va='bottom')
+    
+    # Customize the plot
+    ax.set_title('Unemployment Rate Over Time with Future Predictions', 
+                pad=20, fontsize=14)
+    ax.set_xlabel('Year')
+    ax.set_ylabel('Unemployment Rate (%)')
+    
+    # Add gridlines for better readability
+    ax.grid(True, axis='y', linestyle='--', alpha=0.3)
+    
+    # Add legend
+    ax.legend()
+    
+    # Adjust layout
+    plt.tight_layout()
+    
+    return fig, ax
+
+def plot_unemployment_rates_poly(data, predict_years=3, degree=2, figsize=(12, 6)):
+    """
+    Create a bar plot of unemployment rates over time with future predictions using polynomial regression.
+    
+    Parameters:
+    data (pd.DataFrame): DataFrame containing the unemployment data
+    predict_years (int): Number of years to predict into the future
+    degree (int): Degree of the polynomial regression
+    figsize (tuple): Figure size (width, height)
+    """
+    # Create figure and axis
+    fig, ax = plt.subplots(figsize=figsize)
+    
+    # Prepare data for prediction
+    X = data['Urtea'].values.reshape(-1, 1)
+    y = data['Langabezia Tasa'].values
+    
+    # Create and fit the polynomial regression model
+    model = make_pipeline(PolynomialFeatures(degree), LinearRegression())
+    model.fit(X, y)
+    
+    # Generate future years and predictions
+    last_year = data['Urtea'].max()
+    future_years = np.array(range(last_year + 1, last_year + predict_years + 1))
+    future_predictions = model.predict(future_years.reshape(-1, 1))
+    
+    # Create smooth curve points for plotting
+    X_smooth = np.linspace(data['Urtea'].min(), future_years.max(), 300).reshape(-1, 1)
+    y_smooth = model.predict(X_smooth)
+    
+    # Create bars for actual data
+    bars = ax.bar(data['Urtea'], data['Langabezia Tasa'], 
+                 color='#3498db', alpha=0.8, label='Actual')
+    
+    # Add value labels on top of bars
+    for bar in bars:
+        height = bar.get_height()
+        ax.text(bar.get_x() + bar.get_width()/2., height,
+                f'{height:.2f}%',
+                ha='center', va='bottom')
+    
+    # Plot the smooth curve for historical and future predictions
+    ax.plot(X_smooth, y_smooth, 
+            color='#e74c3c', linestyle='--', 
+            label=f'Polynomial Regression (degree={degree})', 
+            alpha=0.8)
+    
+    # Add points and labels for predictions
+    ax.scatter(future_years, future_predictions, 
+              color='#e74c3c', zorder=5, label='Predicted Points')
+    
+    for year, pred in zip(future_years, future_predictions):
+        # Ensure predictions don't go below 0
+        pred_value = max(0, pred)
+        ax.text(year, pred_value, f'{pred_value:.2f}%',
+                ha='center', va='bottom')
+    
+    # Customize the plot
+    ax.set_title(f'Unemployment Rate Over Time with Polynomial Predictions (degree={degree})', 
+                pad=20, fontsize=14)
+    ax.set_xlabel('Year')
+    ax.set_ylabel('Unemployment Rate (%)')
+    
+    # Add gridlines for better readability
+    ax.grid(True, axis='y', linestyle='--', alpha=0.3)
+    
+    # Ensure y-axis doesn't go below 0
+    ax.set_ylim(bottom=0)
+    
+    # Add legend
+    ax.legend()
+    
+    # Adjust layout
+    plt.tight_layout()
+    
+    # Return the model's R-squared score for the training data
+    r2_score = model.score(X, y)
+    
+    return fig, ax, r2_score
